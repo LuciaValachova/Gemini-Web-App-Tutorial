@@ -12,7 +12,7 @@ form.addEventListener('submit', async (e) => {
 
     try {
         // Send a POST request to the backend API
-        const res = await fetch('/api/chat', {
+        const res = await fetch('https://gemini-backend-lucia.onrender.com/api/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json', // Specify that we're sending JSON
