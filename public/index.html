@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini AI Chat</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom Tailwind color for magenta if not already defined */
+        /* You can add custom colors in tailwind.config.js if you have one,
+           but for quick testing, direct class usage is fine. */
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">Gemini AI Chat</h1>
+
+        <form id="prompt-form" class="mb-4">
+            <!-- Input for the prompt -->
+            <textarea
+                id="prompt-input"
+                class="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:focus:ring-fuchsia-400 mb-4 resize-y"
+                rows="4"
+                placeholder="Enter your query here..."
+            ></textarea>
+
+            <div class="flex space-x-2">
+                <!-- Generate Button (now magenta!) -->
+                <button
+                    type="submit"
+                    class="flex-1 bg-fuchsia-600 text-white py-2 px-4 rounded-md hover:bg-fuchsia-700 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:ring-opacity-50 transition duration-300 ease-in-out"
+                >
+                    Generate
+                </button>
+
+                <!-- Clear Button -->
+                <button
+                    type="button"
+                    id="clear-button"
+                    class="flex-1 bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition duration-300 ease-in-out"
+                >
+                    Clear
+                </button>
+            </div>
+        </form>
+
+        <!-- Response display area -->
+        <div
+            id="response"
+            class="bg-gray-50 p-3 rounded-md border border-gray-200 min-h-[100px] text-gray-700 whitespace-pre-wrap break-words"
+        >
+            AI Response will appear here.
+        </div>
+    </div>
+
+    <!-- Link to your external JavaScript file -->
+    <script src="script.js"></script>
+</body>
+</html>
