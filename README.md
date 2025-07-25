@@ -42,11 +42,11 @@ npm install express dotenv cors @google/generative-ai
 (Note: If you already have package.json with these dependencies, just run npm install.)
 
 4. Obtain and Configure Your Google API Key
-  1. Visit Google AI Studio.
-  2. Sign in with your Google account.
-  3. Create a new API key (or use an existing one).
-  4. IMPORTANT: Never embed your API key directly in frontend code or commit it to a public GitHub repository!
-  5. Create a file named .env in the root directory of your project and add your API key in the following  format:
+   1. Visit Google AI Studio.
+   2. Sign in with your Google account.
+   3. Create a new API key (or use an existing one).
+   4. IMPORTANT: Never embed your API key directly in frontend code or commit it to a public GitHub repository!
+   5. Create a file named .env in the root directory of your project and add your API key in the following  format:
      GOOGLE_API_KEY=YOUR_ACTUAL_API_KEY_FROM_GOOGLE_AI_STUDIO_HERE
 
     For example: GOOGLE_API_KEY=AIzaSyC_1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t
