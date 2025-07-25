@@ -1,4 +1,4 @@
-
+{
   "name": "gemini-webapp",
   "version": "1.0.0",
   "description": "A simple web app interacting with Google Gemini API.",
