@@ -1,3 +1,6 @@
+## Live Demo
+
+Click here to try the application online: [Live Demo](https://luciavalachova.github.io/Gemini-Web-App-Tutorial/)
 Project Documentation: Gemini API Web App Tutorial
 
 This project presents a simple web application that demonstrates the interaction between a frontend and a backend using Node.js, where the backend communicates with the Google Gemini API for text generation and potentially multimodal input processing (e.g., text and images).
