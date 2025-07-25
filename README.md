@@ -80,3 +80,91 @@ Project Structure
 ├── .env                    # Environment variables file (API key)
 ├── .gitignore              # Git ignore file for excluding files from version control
 └── package.json            # Defines project dependencies and scripts
+
+Deployment
+To make your application accessible online, you will deploy the backend and frontend separately.
+
+1. Deploying the Backend to Render.com
+Render.com provides a free tier suitable for small Node.js projects.
+
+Sign up/Log in to Render.com: Go to https://render.com/.
+
+Create a New Web Service: From your Render dashboard, click "New" -> "Web Service".
+
+Connect Your GitHub Repository: Authorize Render to access your GitHub account and select your LuciaValachova/Gemini-Web-App-Tutorial repository.
+
+Configure Service Settings:
+
+Name: Choose a unique name (e.g., gemini-backend-lucia). This will be part of your public URL.
+
+Root Directory: Leave empty (as server.js is in the root).
+
+Runtime: Should auto-detect Node.
+
+Build Command: npm install
+
+Start Command: npm start (as defined in package.json).
+
+Branch: main
+
+Instance Type: Free
+
+Add Environment Variable:
+
+Scroll down to "Environment Variables".
+
+Add a new variable: Key: GOOGLE_API_KEY, Value: Your actual Gemini API key (the one from your local .env file).
+
+Create Web Service: Click "Create Web Service".
+
+Monitor Deployment: Render will build and deploy your service. Once live, copy the public URL provided (e.g., https://your-service-name.onrender.com).
+
+2. Deploying the Frontend to GitHub Pages
+GitHub Pages is ideal for hosting static web content like your HTML, CSS, and JavaScript.
+
+Move Frontend Files to Root: Ensure index.html and script.js (and any CSS files) are directly in the root directory of your GitHub repository. (We already did this in a previous step.)
+
+Configure GitHub Pages Settings:
+
+Go to your GitHub repository: https://github.com/LuciaValachova/Gemini-Web-App-Tutorial
+
+Click on the "Settings" tab.
+
+In the left sidebar, click "Pages".
+
+Under "Build and deployment" -> "Source":
+
+Branch: Select main.
+
+Folder: Select /root (or /). This tells GitHub Pages to serve content from the repository's root.
+
+Click "Save".
+
+Add .nojekyll File: To ensure GitHub Pages serves your raw HTML/JS without Jekyll processing, create an empty file named .nojekyll in the root of your repository. Commit and push this file to GitHub if you haven't already.
+
+Monitor Deployment: GitHub Pages will start building your site. This may take a few minutes. Once deployed, the URL will be displayed on the "Pages" settings page (e.g., https://luciavalachova.github.io/Gemini-Web-App-Tutorial/).
+
+3. Update Frontend API URL
+After your backend is deployed on Render.com and you have its public URL, you must update your frontend's script.js to point to this new backend URL.
+
+Open script.js in your local project.
+
+Find the fetch call:
+
+const res = await fetch('/api/chat', {
+
+Change the URL to your Render.com backend's public URL:
+
+const res = await fetch('https://YOUR-RENDER-BACKEND-URL.onrender.com/api/chat', {
+
+Replace https://YOUR-RENDER-BACKEND-URL.onrender.com with the actual URL from Render.com!
+
+Commit and Push this change to GitHub:
+
+git add script.js
+git commit -m "Update frontend API URL to deployed Render backend"
+git push origin main
+
+This will trigger a new GitHub Pages build, ensuring your frontend uses the correct backend URL.
+
+Now, your application will be fully interactive and accessible via your GitHub Pages URL!
