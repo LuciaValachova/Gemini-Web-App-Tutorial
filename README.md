@@ -30,7 +30,7 @@ We chose the **Gemini 1.5 Pro** model because of its massive context window and 
 
 ---
 
-## 🚀 How to Set Up Our Project
+### 🚀 How to Set Up Our Project
 
 ### Prerequisites
 Make sure you have [Node.js](https://nodejs.org/) installed on your computer.
@@ -51,7 +51,7 @@ GEMINI_MODEL=gemini-1.5-pro-latest
 node server.js
 Open http://localhost:3000 and start chatting!
 
-🌍 Deployment Strategy
+### 🌍 Deployment Strategy
 We successfully deployed this app using two different platforms to keep it free and efficient:
 
 Backend: Hosted on Render.com (Auto-deploys from GitHub).
