@@ -1,70 +1,90 @@
 import express from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import 'dotenv/config'; // Use dotenv to manage environment variables
-import cors from 'cors'; // Import the CORS middleware
+import { GoogleAIFileManager } from "@google/generative-ai/server";
+import 'dotenv/config';
+import cors from 'cors';
+import multer from 'multer';
+import fs from 'fs';
 
 const app = express();
+const upload = multer({ dest: 'uploads/' }); // Dočasný priečinok pre nahrávanie
 
 // --- Middleware ---
-app.use(express.json()); // Middleware to parse JSON bodies
-app.use(express.static('public')); // Serve static files from a 'public' folder
-app.use(cors()); // Enable CORS for all origins (for development purposes)
+app.use(express.json());
+app.use(express.static('public'));
+app.use(cors());
 
-// --- Initialize the Google Generative AI client ---
-// Ensure you have a .env file with your GOOGLE_API_KEY
+// --- Inicializácia ---
 const API_KEY = process.env.GOOGLE_API_KEY;
+const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-1.5-flash"; // Ak v .env chýba, použije flash
 
-// Log loaded API key (for debugging) and exit if not found
 console.log("Loaded API Key (first 5 chars):", API_KEY ? API_KEY.substring(0, 5) : "Key not found");
+console.log("Target Model:", MODEL_NAME);
+
 if (!API_KEY) {
-    console.error("ERROR: GOOGLE_API_KEY is not set in environment variables. Please check your .env file.");
-    process.exit(1); // Exit the application if the key is missing
+    console.error("ERROR: GOOGLE_API_KEY is not set.");
+    process.exit(1);
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const fileManager = new GoogleAIFileManager(API_KEY);
+const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
-// --- Define API endpoint to handle chat requests ---
-// This endpoint receives a prompt from the frontend, calls the Gemini API,
-// and sends the AI's response back.
-app.post('/api/chat', async (req, res) => {
+// --- API Endpoint ---
+// Používame upload.single('file') aby sme prijali súbor s kľúčom 'file'
+app.post('/api/chat', upload.single('file'), async (req, res) => {
     try {
-        const { prompt } = req.body; // Get the prompt from the request body
+        const { prompt } = req.body;
+        const file = req.file;
 
-        // Log the incoming request prompt
-        console.log(`Received request with prompt: "${prompt}"`);
+        console.log(`Received prompt: "${prompt}"`);
+        if (file) console.log(`Received file: ${file.originalname} (${file.mimetype})`);
 
         if (!prompt) {
-            console.warn("Warning: Received request with empty prompt.");
             return res.status(400).send({ error: 'Prompt is required' });
         }
 
-        const result = await model.generateContent(prompt);
+        // Pripravíme časti správy pre Gemini
+        let promptParts = [prompt];
+
+        // Ak bol poslaný súbor, nahráme ho do Google File API
+        if (file) {
+            console.log("Uploading file to Google AI...");
+            const uploadResult = await fileManager.uploadFile(file.path, {
+                mimeType: file.mimetype,
+                displayName: file.originalname,
+            });
+
+            // Pridáme odkaz na súbor do požiadavky
+            promptParts.push({
+                fileData: {
+                    mimeType: uploadResult.file.mimeType,
+                    fileUri: uploadResult.file.uri,
+                },
+            });
+
+            // Po nahraní do Google môžeme lokálny súbor zmazať
+            fs.unlinkSync(file.path);
+        }
+
+        // Generovanie obsahu
+        const result = await model.generateContent(promptParts);
         const response = await result.response;
         const text = response.text();
 
-        // --- Log the Gemini API response before sending to frontend ---
         console.log("Response from Gemini API:", text);
-
         res.send({ response: text });
-    } catch (error) {
-        // --- Enhanced error logging ---
-        console.error("Error calling Gemini API or processing response:");
-        console.error(error); // Log the full error object
 
-        // Attempt to get more details from the API error response if available
-        if (error.response) {
-            console.error("API error status:", error.response.status);
-            try {
-                const errorData = await error.response.json();
-                console.error("API error data (JSON):", errorData);
-            } catch (jsonError) {
-                console.error("Failed to parse API error response as JSON.");
-                console.error("API error data (text):", await error.response.text());
-            }
+    } catch (error) {
+        console.error("Error calling Gemini API:");
+        console.error(error);
+
+        // Ak sa niečo pokazilo pri nahrávaní, skúsime vymazať dočasný súbor, ak existuje
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
         }
 
-        res.status(500).send({ error: 'Failed to generate content' });
+        res.status(500).send({ error: 'Failed to generate content', details: error.message });
     }
 });
 
