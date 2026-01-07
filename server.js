@@ -8,11 +8,14 @@ import fs from 'fs';
 
 const app = express();
 const uploadDir = 'uploads/';
+
+// Poistka pre priečinok na súbory
 if (!fs.existsSync(uploadDir)){
     fs.mkdirSync(uploadDir);
     console.log("Priečinok 'uploads' bol vytvorený.");
 }
-const upload = multer({ dest: 'uploads/' }); // Dočasný priečinok pre nahrávanie
+
+const upload = multer({ dest: uploadDir });
 
 // --- Middleware ---
 app.use(express.json());
@@ -21,7 +24,8 @@ app.use(cors());
 
 // --- Inicializácia ---
 const API_KEY = process.env.GOOGLE_API_KEY;
-const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-1.5-flash"; // Ak v .env chýba, použije flash
+// Zmenené na flash pre lepšiu stabilitu pri súboroch
+const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-1.5-flash"; 
 
 console.log("Loaded API Key (first 5 chars):", API_KEY ? API_KEY.substring(0, 5) : "Key not found");
 console.log("Target Model:", MODEL_NAME);
@@ -31,12 +35,17 @@ if (!API_KEY) {
     process.exit(1);
 }
 
+// Inicializácia s explicitným nastavením verzie API v1beta
 const genAI = new GoogleGenerativeAI(API_KEY);
 const fileManager = new GoogleAIFileManager(API_KEY);
-const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+
+// DÔLEŽITÁ OPRAVA: Pridanie verzie v1beta priamo do inicializácie modelu
+const model = genAI.getGenerativeModel(
+    { model: MODEL_NAME },
+    { apiVersion: 'v1beta' }
+);
 
 // --- API Endpoint ---
-// Používame upload.single('file') aby sme prijali súbor s kľúčom 'file'
 app.post('/api/chat', upload.single('file'), async (req, res) => {
     try {
         const { prompt } = req.body;
@@ -49,10 +58,9 @@ app.post('/api/chat', upload.single('file'), async (req, res) => {
             return res.status(400).send({ error: 'Prompt is required' });
         }
 
-        // Pripravíme časti správy pre Gemini
-        let promptParts = [prompt];
+        let promptParts = [];
 
-        // Ak bol poslaný súbor, nahráme ho do Google File API
+        // Ak bol poslaný súbor, nahráme ho cez FileManager
         if (file) {
             console.log("Uploading file to Google AI...");
             const uploadResult = await fileManager.uploadFile(file.path, {
@@ -60,7 +68,7 @@ app.post('/api/chat', upload.single('file'), async (req, res) => {
                 displayName: file.originalname,
             });
 
-            // Pridáme odkaz na súbor do požiadavky
+            // Pridáme súbor do promptu
             promptParts.push({
                 fileData: {
                     mimeType: uploadResult.file.mimeType,
@@ -68,32 +76,38 @@ app.post('/api/chat', upload.single('file'), async (req, res) => {
                 },
             });
 
-            // Po nahraní do Google môžeme lokálny súbor zmazať
+            // Odstránime lokálny súbor po nahratí
             fs.unlinkSync(file.path);
         }
 
-        // Generovanie obsahu
+        // Pridáme textový prompt
+        promptParts.push(prompt);
+
+        console.log("Generating content with Gemini...");
         const result = await model.generateContent(promptParts);
         const response = await result.response;
         const text = response.text();
 
-        console.log("Response from Gemini API:", text);
+        console.log("Response from Gemini API successful.");
         res.send({ response: text });
 
     } catch (error) {
-        console.error("Error calling Gemini API:");
-        console.error(error);
-
-        // Ak sa niečo pokazilo pri nahrávaní, skúsime vymazať dočasný súbor, ak existuje
+        console.error("Error calling Gemini API:", error.message);
+        
+        // Vyčistenie súboru v prípade chyby
         if (req.file && fs.existsSync(req.file.path)) {
             fs.unlinkSync(req.file.path);
         }
 
-        res.status(500).send({ error: 'Failed to generate content', details: error.message });
+        res.status(500).send({ 
+            error: 'Failed to generate content', 
+            details: error.message 
+        });
     }
 });
 
-const PORT = 3000;
+// Render často vyžaduje port z premennej prostredia
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
