@@ -7,6 +7,11 @@ import multer from 'multer';
 import fs from 'fs';
 
 const app = express();
+const uploadDir = 'uploads/';
+if (!fs.existsSync(uploadDir)){
+    fs.mkdirSync(uploadDir);
+    console.log("Priečinok 'uploads' bol vytvorený.");
+}
 const upload = multer({ dest: 'uploads/' }); // Dočasný priečinok pre nahrávanie
 
 // --- Middleware ---
