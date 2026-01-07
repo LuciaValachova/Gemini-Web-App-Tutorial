@@ -22,7 +22,7 @@ app.use(cors());
 const API_KEY = process.env.GOOGLE_API_KEY;
 
 // NASTAVUJEME NAJNOVŠÍ A NAJVÝKONNEJŠÍ MODEL Z TVOJHO ZOZNAMU
-const MODEL_NAME = "gemini-3-pro-preview"; 
+const MODEL_NAME = "gemini-2.0-flash"; 
 
 const genAI = new GoogleGenerativeAI(API_KEY);
 const fileManager = new GoogleAIFileManager(API_KEY);
