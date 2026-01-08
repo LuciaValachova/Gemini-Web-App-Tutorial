@@ -1,57 +1,79 @@
-// Referencie na HTML elementy
 const form = document.getElementById('prompt-form');
 const promptInput = document.getElementById('prompt-input');
-const fileInput = document.getElementById('file-input'); // Musíš mať v HTML: <input type="file" id="file-input">
+const fileInput = document.getElementById('file-input');
 const responseDiv = document.getElementById('response');
 const clearButton = document.getElementById('clear-button');
 
-// Funkcia pre odoslanie (Submit)
+// Pomocná funkcia na pridanie bubliny do chatu
+function addMessage(text, isUser = false) {
+    const msgDiv = document.createElement('div');
+    
+    // Štýlovanie bublín
+    if (isUser) {
+        msgDiv.className = "self-end bg-fuchsia-600 text-white p-3 rounded-lg max-w-[80%] shadow-sm";
+    } else {
+        msgDiv.className = "self-start bg-white border border-gray-200 text-gray-800 p-3 rounded-lg max-w-[80%] shadow-sm";
+    }
+    
+    msgDiv.textContent = text;
+    responseDiv.appendChild(msgDiv);
+    
+    // Automatický scroll na spodok
+    responseDiv.scrollTop = responseDiv.scrollHeight;
+}
+
 form.addEventListener('submit', async (e) => {
     e.preventDefault(); 
 
-    const prompt = promptInput.value;
-    const file = fileInput.files[0]; // Získame vybraný súbor
+    const prompt = promptInput.value.trim();
+    const file = fileInput.files[0];
 
-    if (!prompt) {
-        alert("Prosím, zadaj otázku.");
-        return;
-    }
+    if (!prompt) return;
 
-    responseDiv.textContent = 'Gemini (Pro) generuje...';
+    // 1. Zobraz tvoju správu v okne
+    addMessage(prompt, true);
+    promptInput.value = ''; 
 
-    // Používame FormData, aby sme mohli poslať text aj súbor naraz
+    // 2. Dočasná bublina pre indikáciu načítania
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = "self-start text-gray-400 text-xs italic ml-2";
+    loadingDiv.textContent = "Gemini premýšľa...";
+    responseDiv.appendChild(loadingDiv);
+    responseDiv.scrollTop = responseDiv.scrollHeight;
+
     const formData = new FormData();
     formData.append('prompt', prompt);
-    if (file) {
-        formData.append('file', file);
-    }
+    if (file) formData.append('file', file);
 
     try {
-        // Použi svoju URL z Renderu
         const res = await fetch('https://gemini-backend-lucia.onrender.com/api/chat', {
             method: 'POST',
-            // DÔLEŽITÉ: Pri FormData nenastavujeme 'Content-Type' hlavičku! 
-            // Prehliadač ju nastaví automaticky vrátane tzv. "boundary".
             body: formData, 
         });
 
-        if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
-        }
+        responseDiv.removeChild(loadingDiv); // Odstráň indikátor načítania
+
+        if (!res.ok) throw new Error(`Chyba servera: ${res.status}`);
 
         const data = await res.json();
-        responseDiv.textContent = data.response;
+        
+        // 3. Zobraz odpoveď od AI
+        addMessage(data.response, false);
 
     } catch (error) {
-        console.error("Error:", error);
-        responseDiv.textContent = 'Chyba: Nepodarilo sa získať odpoveď.';
+        if (loadingDiv.parentNode) responseDiv.removeChild(loadingDiv);
+        addMessage("Chyba: Nepodarilo sa spojiť so serverom.", false);
+        console.error(error);
     }
 });
 
-// Funkcia pre tlačidlo Clear (Vymazať)
-clearButton.addEventListener('click', () => {
-    promptInput.value = ''; 
-    if (fileInput) fileInput.value = ''; // Vymaže aj vybraný súbor
-    responseDiv.textContent = 'AI Response will appear here.';
+clearButton.addEventListener('click', async () => {
+    // Zavoláme reset na serveri, aby si vymazal históriu
+    try {
+        await fetch('https://gemini-backend-lucia.onrender.com/api/reset', { method: 'POST' });
+    } catch (e) {}
+
+    responseDiv.innerHTML = '<div class="text-center text-gray-400 text-sm italic">Konverzácia bola vymazaná.</div>';
+    promptInput.value = '';
+    fileInput.value = '';
 });
