@@ -8,75 +8,72 @@ import fs from 'fs';
 
 const app = express();
 const uploadDir = 'uploads/';
-
-if (!fs.existsSync(uploadDir)){
-    fs.mkdirSync(uploadDir);
-}
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
 const upload = multer({ dest: uploadDir });
-
 app.use(express.json());
 app.use(express.static('public'));
 app.use(cors());
 
 const API_KEY = process.env.GOOGLE_API_KEY;
-
-// NASTAVUJEME NAJNOVŠÍ A NAJVÝKONNEJŠÍ MODEL Z TVOJHO ZOZNAMU
-const MODEL_NAME = "gemini-2.0-flash"; 
-
 const genAI = new GoogleGenerativeAI(API_KEY);
 const fileManager = new GoogleAIFileManager(API_KEY);
 
-// Inicializácia modelu s podporou pre najnovšie funkcie
-const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+// --- TOTO JE TA PAMÄŤ ---
+// Pre jednoduchosť budeme ukladať históriu správ tu (zmizne pri reštarte servera)
+let chatHistory = [];
 
 app.post('/api/chat', upload.single('file'), async (req, res) => {
     try {
         const { prompt } = req.body;
         const file = req.file;
 
-        if (!prompt) {
-            return res.status(400).send({ error: 'Prompt is required' });
-        }
+        const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || "gemini-1.5-flash-latest" });
 
-        let promptParts = [];
+        // Inicializujeme chat s doterajšou históriou
+        const chat = model.startChat({
+            history: chatHistory,
+        });
+
+        let result;
 
         if (file) {
-            console.log(`🚀 Nahrávam multimédiá pre ${MODEL_NAME}...`);
+            // Ak posielaš obrázok, Gemini 1.5 potrebuje generateContent (obrázky sa zatiaľ ťažšie držia v histórii startChat)
             const uploadResult = await fileManager.uploadFile(file.path, {
                 mimeType: file.mimetype,
                 displayName: file.originalname,
             });
 
-            promptParts.push({
-                fileData: {
-                    mimeType: uploadResult.file.mimeType,
-                    fileUri: uploadResult.file.uri,
-                },
-            });
-
-            // Vyčistíme lokálne úložisko
+            result = await model.generateContent([
+                { fileData: { mimeType: uploadResult.file.mimeType, fileUri: uploadResult.file.uri } },
+                prompt
+            ]);
+            
             fs.unlinkSync(file.path);
+        } else {
+            // Ak je to len text, použijeme sendMessage, ktorý automaticky ukladá históriu
+            result = await chat.sendMessage(prompt);
         }
 
-        promptParts.push(prompt);
+        const responseText = result.response.text();
 
-        console.log(`🧠 Premýšľam pomocou ${MODEL_NAME}...`);
-        const result = await model.generateContent(promptParts);
-        const response = await result.response;
-        
-        res.send({ response: response.text() });
+        // Uložíme si otázku a odpoveď do histórie pre nabudúce
+        chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+        chatHistory.push({ role: "model", parts: [{ text: responseText }] });
+
+        res.send({ response: responseText });
 
     } catch (error) {
-        console.error("❌ API Error:", error.message);
-        if (req.file && fs.existsSync(req.file.path)) {
-            fs.unlinkSync(req.file.path);
-        }
+        console.error("API Error:", error.message);
         res.status(500).send({ error: error.message });
     }
 });
 
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-    console.log(`🔥 Super-AI Server beží na porte ${PORT} s modelom ${MODEL_NAME}`);
+// Endpoint na resetovanie chatu (ak chceš začať odznova)
+app.post('/api/reset', (req, res) => {
+    chatHistory = [];
+    res.send({ message: "Konverzácia bola vymazaná." });
 });
+
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => console.log(`Server live on port ${PORT}`));
