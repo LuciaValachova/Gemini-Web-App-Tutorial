@@ -8,17 +8,18 @@ const clearButton = document.getElementById('clear-button');
 function addMessage(text, isUser = false) {
     const msgDiv = document.createElement('div');
     
-    // Štýlovanie bublín
     if (isUser) {
         msgDiv.className = "self-end bg-fuchsia-600 text-white p-3 rounded-lg max-w-[80%] shadow-sm";
+        msgDiv.textContent = text; 
     } else {
-        msgDiv.className = "self-start bg-white border border-gray-200 text-gray-800 p-3 rounded-lg max-w-[80%] shadow-sm";
+        // Pridali sme triedu 'markdown-body', aby kód vyzeral profesionálne
+        msgDiv.className = "self-start bg-white border border-gray-200 text-gray-800 p-3 rounded-lg max-w-[90%] shadow-sm markdown-body";
+        
+        // TOTO JE KĽÚČ: Premení surový text s kódom na pekné bloky
+        msgDiv.innerHTML = marked.parse(text); 
     }
     
-    msgDiv.textContent = text;
     responseDiv.appendChild(msgDiv);
-    
-    // Automatický scroll na spodok
     responseDiv.scrollTop = responseDiv.scrollHeight;
 }
 

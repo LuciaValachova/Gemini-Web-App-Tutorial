@@ -28,7 +28,10 @@ app.post('/api/chat', upload.single('file'), async (req, res) => {
         const { prompt } = req.body;
         const file = req.file;
 
-        const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || "gemini-1.5-flash-latest" });
+        const model = genAI.getGenerativeModel({ 
+            model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+            systemInstruction: "Si všestranný AI asistent. Dokážeš analyzovať obrázky, videá a písať kreatívne texty. Zároveň si expertný programátor. Ak píšeš kód, VŽDY ho vlož do Markdown blokov (napr. ```python ... ```), aby bol čitateľný. Odpovedaj v jazyku, v ktorom píše používateľ."
+        });
 
         // Inicializujeme chat s doterajšou históriou
         const chat = model.startChat({
